@@ -13,7 +13,7 @@ func TestStringUnpack(t *testing.T) {
 		expected string
 		err      error
 	}{
-		{input: "a4bc2d5e", expected: "aaaabccddddde", err: nil},
+		{input: "a4ыc2d5e", expected: "aaaaыccddddde", err: nil},
 		{input: "abcd", expected: "abcd", err: nil},
 		{input: "3abc", expected: "", err: packer.ErrIncorrectInput},
 		{input: "45", expected: "", err: packer.ErrIncorrectInput},
@@ -89,6 +89,7 @@ func TestPackString(t *testing.T) {
 		{input: `qwne`, expected: "qwne", err: nil},
 		{input: `aaaabccddddde`, expected: `a4bc2d5e`, err: nil},
 		{input: `abab`, expected: `abab`, err: nil},
+		{input: `ababb`, expected: `abab2`, err: nil},
 	}
 
 	for _, testCase := range testTable {
