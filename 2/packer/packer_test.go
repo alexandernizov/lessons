@@ -52,6 +52,8 @@ func TestStringUnpackSlash(t *testing.T) {
 		expected string
 		err      error
 	}{
+		{input: ``, expected: "", err: nil},
+		{input: `55`, expected: "", err: packer.ErrIncorrectInput},
 		{input: `qw\ne`, expected: "", err: packer.ErrIncorrectInput},
 		{input: `qwe\4\5`, expected: `qwe45`, err: nil},
 		{input: `qwe\45`, expected: `qwe44444`, err: nil},
@@ -86,6 +88,7 @@ func TestPackString(t *testing.T) {
 		expected string
 		err      error
 	}{
+		{input: ``, expected: "", err: nil},
 		{input: `qwne`, expected: "qwne", err: nil},
 		{input: `aaaabccddddde`, expected: `a4bc2d5e`, err: nil},
 		{input: `abab`, expected: `abab`, err: nil},
