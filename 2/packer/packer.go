@@ -11,42 +11,6 @@ var (
 )
 
 func UnpackString(input string) (string, error) {
-	// Алгоритм:
-	// 1. Пустая строка - пустая строка
-	// 2. строка не начинается с цифры
-	// 3. Разделяем строку по рунам
-	// 4. Добавляем в буфер новые строчки, через repeat
-
-	if input == "" {
-		return "", nil
-	}
-
-	var res string
-	var prev string
-	for _, let := range input {
-		if unicode.IsDigit(let) {
-			if prev == "" {
-				return "", ErrIncorrectInput
-			}
-			multiply := let - '0'
-			res = res + strings.Repeat(prev, int(multiply))
-			prev = ""
-			continue
-		}
-		res = res + string(prev)
-		prev = string(let)
-	}
-	res = res + prev
-	return res, nil
-}
-
-// Через билдер строк - работает в 3 раза быстрее
-func UnpackString2(input string) (string, error) {
-	// Алгоритм:
-	// 1. Пустая строка - пустая строка
-	// 2. строка не начинается с цифры
-	// 3. Разделяем строку по рунам
-	// 4. Добавляем в буфер новые строчки, через repeat
 
 	if input == "" {
 		return "", nil
@@ -72,5 +36,96 @@ func UnpackString2(input string) (string, error) {
 		prev = let
 	}
 	b.WriteRune(prev)
+	return b.String(), nil
+}
+
+// Дополнительное задание: поддержка экранирования через \
+func UnpackStringSlash(input string) (string, error) {
+
+	if input == "" {
+		return "", nil
+	}
+
+	b := strings.Builder{}
+	// -1 - означает, что предыдущий символ пустой, -2 - что предыдущий символ - это обратный слэш
+	var prev rune = -1
+
+	//Обходим строку побуквенно: если текущий символ - это цифра - то воспринимаем его как множитель предыдущего. Если
+	//это не цифра - то записываем предыдущий символ без множителя.
+	for _, let := range input {
+		//Если предыдущий символ == обратный слеш - то это экранироваие текущего символа. Возможно экранировать только цифры или
+		//обратный слэш
+		if prev == 92 {
+			if unicode.IsDigit(let) {
+				prev = let
+				continue
+			} else if let == 92 {
+				prev = -2
+				continue
+			} else {
+				return "", ErrIncorrectInput
+			}
+		}
+		if unicode.IsDigit(let) {
+			if prev == -1 {
+				return "", ErrIncorrectInput
+			}
+			multiply := int(let - '0')
+			for i := 0; i < int(multiply); i++ {
+				if prev == -2 {
+					prev = 92
+				}
+				b.WriteRune(prev)
+			}
+			prev = -1
+			continue
+		}
+
+		if prev != -1 {
+			b.WriteRune(prev)
+		}
+		prev = let
+	}
+	if prev != -1 {
+		b.WriteRune(prev)
+	}
+	return b.String(), nil
+}
+
+func PackString(input string) (string, error) {
+	if input == "" {
+		return "", nil
+	}
+
+	runes := []rune(input)
+
+	b := strings.Builder{}
+	var prev rune = -1
+	count := 0
+
+	for i := 0; i < len(runes)+1; i++ {
+		var cur rune
+		if i != len(runes) {
+			cur = runes[i]
+		}
+		if prev == -1 {
+			prev = cur
+			count = 1
+			continue
+		}
+		if prev == cur {
+			count++
+			continue
+		}
+		if prev != cur {
+			b.WriteRune(prev)
+			if count > 1 {
+				b.WriteRune('0' + rune(count))
+			}
+			count = 1
+			prev = cur
+		}
+	}
+
 	return b.String(), nil
 }
