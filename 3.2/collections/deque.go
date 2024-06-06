@@ -32,3 +32,11 @@ func (s *Dueue) PopFront() (any, bool) {
 func (s *Dueue) PeekFront() (any, bool) {
 	return s.c.PeekFront()
 }
+
+func (d *Dueue) Contains(value any) bool {
+	return d.c.Contains(value)
+}
+
+func (d *Dueue) Clear() {
+	d.c.Clear()
+}

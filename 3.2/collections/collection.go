@@ -82,3 +82,25 @@ func (c *Collection) PeekFront() (any, bool) {
 	res := c.slice[0]
 	return res, true
 }
+
+func (c *Collection) Contains(value any) bool {
+	c.wasnew()
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+	if len(c.slice) <= 0 {
+		return false
+	}
+	for _, v := range c.slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Collection) Clear() {
+	c.wasnew()
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	c.slice = nil
+}

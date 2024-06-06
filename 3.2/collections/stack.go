@@ -20,3 +20,11 @@ func (s *Stack) Pop() (any, bool) {
 func (s *Stack) Peek() (any, bool) {
 	return s.c.PeekBack()
 }
+
+func (s *Stack) Contains(value any) bool {
+	return s.c.Contains(value)
+}
+
+func (s *Stack) Clear() {
+	s.c.Clear()
+}

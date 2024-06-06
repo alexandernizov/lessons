@@ -9,14 +9,22 @@ func NewQueue() *Queue {
 	return &Queue{c: *c}
 }
 
-func (s *Queue) Push(value any) {
-	s.c.PushBack(value)
+func (q *Queue) Push(value any) {
+	q.c.PushBack(value)
 }
 
-func (s *Queue) Pop() (any, bool) {
-	return s.c.PopBack()
+func (q *Queue) Pop() (any, bool) {
+	return q.c.PopBack()
 }
 
-func (s *Queue) Peek() (any, bool) {
-	return s.c.PeekBack()
+func (q *Queue) Peek() (any, bool) {
+	return q.c.PeekBack()
+}
+
+func (q *Queue) Contains(value any) bool {
+	return q.c.Contains(value)
+}
+
+func (q *Queue) Clear() {
+	q.c.Clear()
 }
