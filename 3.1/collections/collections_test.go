@@ -20,10 +20,10 @@ func TestPush(t *testing.T) {
 	//они начинаются с маленькой буквы и доступны, только внутри пакета. А вот как мне в тесте обратиться к полю структуры?
 	//Поэтому пока просто смотрю, что есть в структуре и забираю кол-во значений из неё, хотя и понимаю, что это дико криво
 	st := collections.NewStack()
-	var expected = "1"
+	var expected = "[]"
 	value := fmt.Sprintf("%v", st)
 	fmt.Println(value)
-	res := value[len(value)-3 : len(value)-2]
+	res := value[len(value)-3 : len(value)-1]
 	assert.Equal(t, expected, res, "stack should have 1 element")
 }
 
@@ -202,16 +202,15 @@ func TestQClear(t *testing.T) {
 }
 
 func TestQContains(t *testing.T) {
-	// какая-то ошибка, пока ищу в чем дело
-	// q := collections.NewQueue()
-	//assert.False(t, q.Contains(1), "shouldn't contain 1")
-	// q.Enqueue(1)
-	// q.Enqueue(2)
-	// q.Enqueue(3)
-	// assert.True(t, q.Contains(1), "should contain 1")
-	// assert.True(t, q.Contains(2), "should contain 2")
-	// assert.True(t, q.Contains(3), "should contain 3")
-	// assert.False(t, q.Contains(4), "shouldn't contain 4")
+	q := collections.NewQueue()
+	assert.False(t, q.Contains(1), "shouldn't contain 1")
+	q.Enqueue(1)
+	q.Enqueue(2)
+	q.Enqueue(3)
+	assert.True(t, q.Contains(1), "should contain 1")
+	assert.True(t, q.Contains(2), "should contain 2")
+	assert.True(t, q.Contains(3), "should contain 3")
+	assert.False(t, q.Contains(4), "shouldn't contain 4")
 }
 
 //Dequeue
