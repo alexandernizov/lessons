@@ -11,17 +11,40 @@ type Item struct {
 }
 
 type LRU struct {
-	mx       sync.RWMutex
+	mx       *sync.Mutex
 	capacity int
 	items    map[string]*list.Element
 	queue    *list.List
 }
 
-func New(capacity int) *LRU {
-	return &LRU{
-		capacity: capacity,
+func New(opts ...lruOption) *LRU {
+	defaultCapacity := 100 //Если оставить defaultCapcity == 0 - то тогда кэш будет неограниченного размера, и как его чистить?
+	defaultMutex := sync.Mutex{}
+
+	cache := LRU{
+		mx:       &defaultMutex,
+		capacity: defaultCapacity,
 		items:    make(map[string]*list.Element),
 		queue:    list.New(),
+	}
+	for _, opt := range opts {
+		opt(&cache)
+	}
+
+	return &cache
+}
+
+type lruOption func(*LRU)
+
+func SetCapacity(capacity int) lruOption {
+	return func(c *LRU) {
+		c.capacity = capacity
+	}
+}
+
+func SetMutex(mx *sync.Mutex) lruOption {
+	return func(c *LRU) {
+		c.mx = mx
 	}
 }
 
@@ -59,13 +82,13 @@ func (c *LRU) purge() {
 	}
 }
 
-func (c *LRU) Get(key string) interface{} {
+func (c *LRU) Get(key string) (any, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	element, exists := c.items[key]
-	if exists == false {
-		return nil
+	if !exists {
+		return nil, false
 	}
 	c.queue.MoveToFront(element)
-	return element.Value.(*Item).Value
+	return element.Value.(*Item).Value, true
 }

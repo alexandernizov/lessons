@@ -9,7 +9,8 @@ import (
 )
 
 func TestTTL(t *testing.T) {
-	c := ttl.New(100 * time.Millisecond)
+	//c := ttl.New(100*time.Millisecond, 50*time.Millisecond)
+	c := ttl.New(ttl.SetTTL(100*time.Millisecond), ttl.SetClearInterval(50*time.Millisecond))
 	c.Set("1", 1)
 	time.Sleep(50 * time.Millisecond)
 	c.Set("2", 2)
@@ -27,12 +28,19 @@ func TestTTL(t *testing.T) {
 }
 
 func TestTTLClear(t *testing.T) {
-	c := ttl.New(1 * time.Millisecond)
-	c.ClearExpired()
+	c := ttl.New()
 	c.Set("1", 1)
 	c.Set("2", 2)
 	c.Set("3", 3)
-	time.Sleep(2 * time.Millisecond)
-	c.ClearExpired()
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, 0, c.Len(), "Incorrect result")
+}
+
+func TestGC(t *testing.T) {
+	c := ttl.New()
+	c.Set("1", 1)
+	c.Set("2", 2)
+	c.Set("3", 3)
+	time.Sleep(2 * time.Second)
 	assert.Equal(t, 0, c.Len(), "Incorrect result")
 }
