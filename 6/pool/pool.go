@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"context"
 	"errors"
 	"sync"
 )
@@ -12,68 +11,83 @@ type Task func() error
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	//Каналы для задач и для результата
-	tCh := make(chan Task, len(tasks))
-	rCh := make(chan error, len(tasks))
-	defer close(rCh)
-	//Контекст для отмены выполнения воркеров, если мы получили слишком много ошибок
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	//Записали задачи
-	for _, t := range tasks {
-		tCh <- t
-	}
-	close(tCh)
-
-	//WG для того, чтобы подождать, когда все воркеры завершат работу, иначе Run завершается до того, как выполняются воркеры
-	//Run создавал канал для записи результатов, он же и закрывает. По-идее если сам воркер будет закрывать канал - тоже хорошо
-	//Мы получим то, что RUN не будет дожидаться окончания работы всех воркеров, если ошибок > m. А оставшиеся горутины сами
-	//себя завершат (сам пишет -> сам закрывает). И я где-то видел пример, где закрывали канал в Згорутинах, но не могу найти
-	wg := sync.WaitGroup{}
-	defer wg.Wait()
+	//Каналы для задач и для подсчета ошибок
+	taskCh := make(chan Task)
+	errCh := make(chan bool)
+	//Канал для ожидания общего результата
+	resCh := make(chan bool)
 
 	//Запускаем воркеров
+	wg := sync.WaitGroup{}
+
 	for w := 0; w < n; w++ {
 		wg.Add(1)
-		go worker(ctx, tCh, rCh, &wg)
+		go worker(taskCh, errCh, &wg)
 	}
 
-	//Проверяем результат, если m == 0 - то не считаем ошибки
-	errCount := 0
-	for i := 0; i < len(tasks); i++ {
-		err := <-rCh
-		if err != nil {
-			errCount++
+	//Функция ожидания заврешения воркеров
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	//Горутина записывает в канал следующую задачу
+	go func() {
+
+		errCount := 0
+		taskNum := 0
+
+		//Если ошибки произошли в самых последних задачах, то мы всё равно должны понять, в результате нам отдавать Err или nil?
+		f := func() {
+			for err := range errCh {
+				if err {
+					errCount++
+				}
+			}
+			if errCount >= m {
+				resCh <- true
+			}
+			close(resCh)
 		}
-		if m > 0 && errCount >= m {
-			cancel()
-			return ErrErrorsLimitExceeded
+
+		defer f()
+		defer close(taskCh)
+
+		for {
+			select {
+			//Здесь не даём запустить следующую задачу, если мы получили слишком много ошибок
+			case <-errCh:
+				errCount++
+				if errCount >= m {
+					return
+				}
+			case taskCh <- tasks[taskNum]:
+				taskNum++
+				if taskNum == len(tasks) {
+					return
+				}
+			}
 		}
+
+	}()
+
+	err := <-resCh
+	if err {
+		return ErrErrorsLimitExceeded
 	}
 	return nil
 }
 
-func worker(ctx context.Context, tasks chan Task, results chan error, wg *sync.WaitGroup) {
-	//По завершению своей работы воркер должен отчитаться, чтобы основная функция могла закрыть канал
+func worker(tasks chan Task, errCh chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
-		//Первый селект - если получаем отмену в контексте - то закрываемся
-		select {
-		case <-ctx.Done():
+		task, ok := <-tasks
+		if !ok {
 			return
-
-		case t, ok := <-tasks:
-			if !ok {
-				return
-			}
-			err := t()
-			//Второй селект, так как функция t() может выполняться долго, то к этому моменту уже канал мог быть закрыт
-			select {
-			case <-ctx.Done():
-				return
-			case results <- err:
-			}
+		}
+		err := task()
+		if err != nil {
+			errCh <- true
 		}
 	}
 }
