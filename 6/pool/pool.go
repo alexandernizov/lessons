@@ -28,6 +28,7 @@ func Run(tasks []Task, n, m int) error {
 	//Функция ожидания заврешения воркеров
 	go func() {
 		wg.Wait()
+		//Закрыли канал, когда воркеры уже в него ничего не пишут
 		close(errCh)
 	}()
 
@@ -55,7 +56,7 @@ func Run(tasks []Task, n, m int) error {
 
 		for {
 			select {
-			//Здесь не даём запустить следующую задачу, если мы получили слишком много ошибок
+			//Здесь не даём запустить следующую задачу, если мы получили слишком много ошибок (количество запусков должно быть n+m)
 			case <-errCh:
 				errCount++
 				if errCount >= m {
@@ -71,6 +72,7 @@ func Run(tasks []Task, n, m int) error {
 
 	}()
 
+	//Ждем общий результат по отработанным задачам
 	err := <-resCh
 	if err {
 		return ErrErrorsLimitExceeded
@@ -80,11 +82,7 @@ func Run(tasks []Task, n, m int) error {
 
 func worker(tasks chan Task, errCh chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for {
-		task, ok := <-tasks
-		if !ok {
-			return
-		}
+	for task := range tasks {
 		err := task()
 		if err != nil {
 			errCh <- true
